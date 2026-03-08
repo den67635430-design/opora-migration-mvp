@@ -1342,23 +1342,24 @@
     canvas.width  = W;
     canvas.height = H;
 
-    // Ось по центру хедера с лёгким наклоном и волной
+    var phase = 0;
+    var SPD   = 0.007; // медленная волна
+
+    // Ось по центру хедера с лёгким наклоном и бегущей волной
     function spineY(x) {
       var t = x / W;
       return H * 0.5 - H * 0.18 * t
-           + 14 * Math.sin(t * Math.PI * 2.2 + 0.3);
+           + 14 * Math.sin(t * Math.PI * 2.2 + phase);
     }
 
     // Перпендикуляр к оси
     function perp(x) {
       var t = x / W;
-      var dy = -H * 0.18 / W + 14 * (Math.PI * 2.2 / W) * Math.cos(t * Math.PI * 2.2 + 0.3);
+      var dy = -H * 0.18 / W + 14 * (Math.PI * 2.2 / W) * Math.cos(t * Math.PI * 2.2 + phase);
       var len = Math.sqrt(1 + dy * dy);
       return { px: dy / len, py: -1 / len };
     }
 
-    // г-ч-г-ч-г-ч-г = 4 золотых, 3 чёрных
-    // sh у золотых = средний золотой (без тёмной окантовки по краям)
     var BANDS = [
       { sh:[120,62,5], mid:[148,76,7], hi:[255,252,182], a:-90, b:-70 }, // золотой 1
       { sh:[0,0,0],    mid:[7,4,1],    hi:[52,35,12],    a:-70, b:-46 }, // чёрный 1
@@ -1371,38 +1372,44 @@
 
     function rc(c) { return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; }
 
-    // Рисуем каждую полосу
-    for (var bi = 0; bi < BANDS.length; bi++) {
-      var band = BANDS[bi];
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
 
-      ctx.beginPath();
-      for (var x = 0; x <= W; x += 2) {
-        var sy = spineY(x), p = perp(x);
-        var px = x + p.px * band.a, py = sy + p.py * band.a;
-        if (x === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-      }
-      for (var x = W; x >= 0; x -= 2) {
-        var sy = spineY(x), p = perp(x);
-        ctx.lineTo(x + p.px * band.b, sy + p.py * band.b);
-      }
-      ctx.closePath();
+      for (var bi = 0; bi < BANDS.length; bi++) {
+        var band = BANDS[bi];
 
-      // Металлический градиент перпендикулярно полосе
-      var cx = W * 0.35;
-      var csy = spineY(cx), cp = perp(cx);
-      var grad = ctx.createLinearGradient(
-        cx + cp.px * band.a, csy + cp.py * band.a,
-        cx + cp.px * band.b, csy + cp.py * band.b
-      );
-      grad.addColorStop(0,    rc(band.sh));
-      grad.addColorStop(0.22, rc(band.mid));
-      grad.addColorStop(0.5,  rc(band.hi));
-      grad.addColorStop(0.78, rc(band.mid));
-      grad.addColorStop(1,    rc(band.sh));
-      ctx.fillStyle = grad;
-      ctx.fill();
+        ctx.beginPath();
+        for (var x = 0; x <= W; x += 2) {
+          var sy = spineY(x), p = perp(x);
+          var px = x + p.px * band.a, py = sy + p.py * band.a;
+          if (x === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        for (var x = W; x >= 0; x -= 2) {
+          var sy = spineY(x), p = perp(x);
+          ctx.lineTo(x + p.px * band.b, sy + p.py * band.b);
+        }
+        ctx.closePath();
+
+        var cx = W * 0.5;
+        var csy = spineY(cx), cp = perp(cx);
+        var grad = ctx.createLinearGradient(
+          cx + cp.px * band.a, csy + cp.py * band.a,
+          cx + cp.px * band.b, csy + cp.py * band.b
+        );
+        grad.addColorStop(0,    rc(band.sh));
+        grad.addColorStop(0.22, rc(band.mid));
+        grad.addColorStop(0.5,  rc(band.hi));
+        grad.addColorStop(0.78, rc(band.mid));
+        grad.addColorStop(1,    rc(band.sh));
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
+
+      phase -= SPD;
+      requestAnimationFrame(draw);
     }
 
+    draw();
   })();
 
 </script>
