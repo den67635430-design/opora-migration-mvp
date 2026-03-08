@@ -43,16 +43,16 @@
       background: #0d1a3a;
     }
 
-    /* Георгиевская лента — canvas */
+    /* Георгиевская лента — canvas на всю ширину */
     .georgy-ribbon {
       position: absolute; left: 0; top: 0;
-      width: 460px; height: 100%;
-      overflow: hidden; z-index: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
       pointer-events: none;
     }
     #georgy-canvas {
       position: absolute; left: 0; top: 0;
-      display: block;
+      display: block; width: 100%; height: 100%;
     }
 
     .header-wrap {
@@ -1337,21 +1337,22 @@
     if (!canvas) return;
     var ctx = canvas.getContext('2d');
 
-    var W = 560, H = 130;
+    var W = canvas.parentElement.offsetWidth || window.innerWidth;
+    var H = canvas.parentElement.offsetHeight || 88;
     canvas.width  = W;
     canvas.height = H;
 
-    // Ось ленты: диагональ снизу-слева вверх-вправо + заметная волна как флаг
+    // Ось по центру хедера с лёгким наклоном и волной
     function spineY(x) {
       var t = x / W;
-      return H * 1.05 - H * 1.25 * t
-           + 22 * Math.sin(t * Math.PI * 2.0 + 0.3);
+      return H * 0.5 - H * 0.18 * t
+           + 14 * Math.sin(t * Math.PI * 2.2 + 0.3);
     }
 
-    // Перпендикуляр к оси (вектор "вниз" от ленты)
+    // Перпендикуляр к оси
     function perp(x) {
       var t = x / W;
-      var dy = -H * 1.25 / W + 22 * (Math.PI * 2.0 / W) * Math.cos(t * Math.PI * 2.0 + 0.3);
+      var dy = -H * 0.18 / W + 14 * (Math.PI * 2.2 / W) * Math.cos(t * Math.PI * 2.2 + 0.3);
       var len = Math.sqrt(1 + dy * dy);
       return { px: dy / len, py: -1 / len };
     }
@@ -1402,12 +1403,6 @@
       ctx.fill();
     }
 
-    // Растворение вправо в фон хедера
-    var fade = ctx.createLinearGradient(W * 0.5, 0, W * 0.88, 0);
-    fade.addColorStop(0, 'rgba(13,26,58,0)');
-    fade.addColorStop(1, 'rgba(13,26,58,1)');
-    ctx.fillStyle = fade;
-    ctx.fillRect(0, 0, W, H);
   })();
 
 </script>
