@@ -40,12 +40,55 @@
     header {
       position: sticky; top: 0; z-index: 200;
       overflow: hidden;
+      background: #0d1a3a;
     }
 
-    #ribbon-canvas {
+    /* Статичная диагональная Георгиевская лента */
+    .georgy-ribbon {
+      position: absolute; left: 0; top: 0;
+      width: 420px; height: 100%;
+      overflow: hidden; z-index: 0;
+      pointer-events: none;
+    }
+    .georgy-band {
+      position: absolute;
+      left: -110px; top: -70px;
+      width: 620px; height: 280px;
+      transform: rotate(-13deg);
+      /* Металлический блеск: каждая оранжевая полоса — яркий атлас */
+      background: repeating-linear-gradient(
+        0deg,
+        /* ЧЁРНАЯ полоса — глубокий чёрный с едва заметным центром */
+        #010100 0px,
+        #060300 5px,
+        #100800 11px,
+        #060300 17px,
+        #010100 22px,
+        /* БОРДЮР тёмно-оранжевый */
+        #3a1c02 22px,
+        #7a4206 25px,
+        #3a1c02 26px,
+        /* ОРАНЖЕВАЯ полоса — яркий металлический блеск */
+        #280f00 26px,
+        #8c4607 30px,
+        #d47416 33px,
+        #fecb45 35px,
+        #fff7b8 36px,   /* пик — почти белое золото */
+        #fecb45 37px,
+        #d47416 40px,
+        #8c4607 43px,
+        #280f00 47px,
+        /* БОРДЮР тёмно-оранжевый */
+        #3a1c02 47px,
+        #7a4206 50px,
+        #3a1c02 51px
+      );
+    }
+    /* Плавное растворение ленты вправо */
+    .georgy-ribbon::after {
+      content: '';
       position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      display: block; z-index: 0;
+      background: linear-gradient(90deg, transparent 55%, #0d1a3a 90%);
     }
 
     .header-wrap {
@@ -54,7 +97,7 @@
       padding: 0 24px;
       display: flex; align-items: center;
       justify-content: space-between;
-      height: 68px; gap: 20px;
+      height: 88px; gap: 20px;
     }
 
     /* ── Логотип ── */
@@ -816,7 +859,7 @@
 
 <!-- HEADER -->
 <header>
-  <canvas id="ribbon-canvas"></canvas>
+  <div class="georgy-ribbon"><div class="georgy-band"></div></div>
   <div class="header-wrap">
     <a class="logo" href="#top">
       <div class="logo-flag">
@@ -1324,84 +1367,6 @@
     document.getElementById('backTop').classList.toggle('show', window.scrollY > 500);
   });
 
-  // ═══ Георгиевская лента — волновой canvas ═══
-  (function() {
-    var canvas = document.getElementById('ribbon-canvas');
-    if (!canvas) return;
-    var ctx = canvas.getContext('2d');
-
-    var AMP = 9;       // амплитуда волны (px)
-    var WL  = 420;     // длина волны (px)
-    var SPD = 0.024;   // скорость волны (фаза/кадр)
-
-    // Полосы Георгиевской ленты (один повтор = 60px)
-    var UNIT = 60;
-    var UNIT_DEF = [
-      ['#171007',  0, 15],
-      ['#8a5203', 15, 19],
-      ['#d98c0e', 19, 27],
-      ['#8a5203', 27, 31],
-      ['#171007', 31, 45],
-      ['#8a5203', 45, 49],
-      ['#d98c0e', 49, 57],
-      ['#8a5203', 57, 60]
-    ];
-
-    var stripes = [];
-    var phase = 0;
-
-    function buildStripes(h) {
-      stripes = [];
-      var rFrom = Math.floor((-AMP - 4) / UNIT) - 1;
-      var rTo   = Math.ceil((h + AMP + 4) / UNIT) + 1;
-      for (var r = rFrom; r <= rTo; r++) {
-        for (var i = 0; i < UNIT_DEF.length; i++) {
-          var d = UNIT_DEF[i];
-          stripes.push({ color: d[0], top: r * UNIT + d[1], bot: r * UNIT + d[2] });
-        }
-      }
-    }
-
-    function resize() {
-      canvas.width  = canvas.parentElement.offsetWidth  || window.innerWidth;
-      canvas.height = canvas.parentElement.offsetHeight || 78;
-      buildStripes(canvas.height);
-    }
-
-    function drawStripe(top, bot, color) {
-      var w = canvas.width;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      var x, y;
-      for (x = 0; x <= w; x += 3) {
-        y = top + AMP * Math.sin((x / WL) * Math.PI * 2 + phase);
-        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
-      for (x = w; x >= 0; x -= 3) {
-        y = bot + AMP * Math.sin((x / WL) * Math.PI * 2 + phase);
-        ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (var i = 0; i < stripes.length; i++) {
-        var s = stripes[i];
-        drawStripe(s.top, s.bot, s.color);
-      }
-      // затемнение для читаемости текста
-      ctx.fillStyle = 'rgba(8, 4, 0, 0.50)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      phase -= SPD;
-      requestAnimationFrame(draw);
-    }
-
-    window.addEventListener('resize', resize);
-    resize();
-    draw();
-  })();
 </script>
 </body>
 </html>
