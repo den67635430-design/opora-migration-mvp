@@ -43,52 +43,16 @@
       background: #0d1a3a;
     }
 
-    /* Статичная диагональная Георгиевская лента */
+    /* Георгиевская лента — canvas */
     .georgy-ribbon {
       position: absolute; left: 0; top: 0;
-      width: 420px; height: 100%;
+      width: 460px; height: 100%;
       overflow: hidden; z-index: 0;
       pointer-events: none;
     }
-    .georgy-band {
-      position: absolute;
-      left: -110px; top: -70px;
-      width: 620px; height: 280px;
-      transform: rotate(-13deg);
-      /* Металлический блеск: каждая оранжевая полоса — яркий атлас */
-      background: repeating-linear-gradient(
-        0deg,
-        /* ЧЁРНАЯ полоса — глубокий чёрный с едва заметным центром */
-        #010100 0px,
-        #060300 5px,
-        #100800 11px,
-        #060300 17px,
-        #010100 22px,
-        /* БОРДЮР тёмно-оранжевый */
-        #3a1c02 22px,
-        #7a4206 25px,
-        #3a1c02 26px,
-        /* ОРАНЖЕВАЯ полоса — яркий металлический блеск */
-        #280f00 26px,
-        #8c4607 30px,
-        #d47416 33px,
-        #fecb45 35px,
-        #fff7b8 36px,   /* пик — почти белое золото */
-        #fecb45 37px,
-        #d47416 40px,
-        #8c4607 43px,
-        #280f00 47px,
-        /* БОРДЮР тёмно-оранжевый */
-        #3a1c02 47px,
-        #7a4206 50px,
-        #3a1c02 51px
-      );
-    }
-    /* Плавное растворение ленты вправо */
-    .georgy-ribbon::after {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(90deg, transparent 55%, #0d1a3a 90%);
+    #georgy-canvas {
+      position: absolute; left: 0; top: 0;
+      display: block;
     }
 
     .header-wrap {
@@ -859,7 +823,7 @@
 
 <!-- HEADER -->
 <header>
-  <div class="georgy-ribbon"><div class="georgy-band"></div></div>
+  <div class="georgy-ribbon"><canvas id="georgy-canvas"></canvas></div>
   <div class="header-wrap">
     <a class="logo" href="#top">
       <div class="logo-flag">
@@ -1366,6 +1330,87 @@
   window.addEventListener('scroll', function () {
     document.getElementById('backTop').classList.toggle('show', window.scrollY > 500);
   });
+
+  // ═══ Георгиевская лента — статичный canvas с волной ═══
+  (function() {
+    var canvas = document.getElementById('georgy-canvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+
+    var W = 560, H = 130;
+    canvas.width  = W;
+    canvas.height = H;
+
+    // Ось ленты: диагональ снизу-слева вверх-вправо + плавная волна
+    function spineY(x) {
+      var t = x / W;
+      return H * 1.05 - H * 1.25 * t
+           + 10 * Math.sin(t * Math.PI * 2.2 + 0.4);
+    }
+
+    // Перпендикуляр к оси (вектор "вниз" от ленты)
+    function perp(x) {
+      var t = x / W;
+      var dy = -H * 1.25 / W + 10 * (Math.PI * 2.2 / W) * Math.cos(t * Math.PI * 2.2 + 0.4);
+      var len = Math.sqrt(1 + dy * dy);
+      return { px: dy / len, py: -1 / len };
+    }
+
+    // Полосы: смещение от оси в перпендикулярных единицах
+    // Отрицательное = "выше" ленты, положительное = "ниже"
+    var BANDS = [
+      { sh:[0,0,0],   mid:[7,4,1],    hi:[50,34,12],    a:-72, b:-52 }, // чёрный
+      { sh:[18,9,0],  mid:[82,46,3],  hi:[168,106,22],  a:-52, b:-48 }, // бордюр
+      { sh:[10,4,0],  mid:[148,76,7], hi:[255,252,182], a:-48, b:-35 }, // оранжевый ★
+      { sh:[18,9,0],  mid:[82,46,3],  hi:[168,106,22],  a:-35, b:-31 }, // бордюр
+      { sh:[0,0,0],   mid:[7,4,1],    hi:[50,34,12],    a:-31, b:-11 }, // чёрный
+      { sh:[18,9,0],  mid:[82,46,3],  hi:[168,106,22],  a:-11, b:-7  }, // бордюр
+      { sh:[10,4,0],  mid:[148,76,7], hi:[255,252,182], a:-7,  b:6   }, // оранжевый ★
+      { sh:[18,9,0],  mid:[82,46,3],  hi:[168,106,22],  a:6,   b:10  }, // бордюр
+      { sh:[0,0,0],   mid:[7,4,1],    hi:[50,34,12],    a:10,  b:30  }, // чёрный
+    ];
+
+    function rc(c) { return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; }
+
+    // Рисуем каждую полосу
+    for (var bi = 0; bi < BANDS.length; bi++) {
+      var band = BANDS[bi];
+
+      ctx.beginPath();
+      for (var x = 0; x <= W; x += 2) {
+        var sy = spineY(x), p = perp(x);
+        var px = x + p.px * band.a, py = sy + p.py * band.a;
+        if (x === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      for (var x = W; x >= 0; x -= 2) {
+        var sy = spineY(x), p = perp(x);
+        ctx.lineTo(x + p.px * band.b, sy + p.py * band.b);
+      }
+      ctx.closePath();
+
+      // Металлический градиент перпендикулярно полосе
+      var cx = W * 0.35;
+      var csy = spineY(cx), cp = perp(cx);
+      var grad = ctx.createLinearGradient(
+        cx + cp.px * band.a, csy + cp.py * band.a,
+        cx + cp.px * band.b, csy + cp.py * band.b
+      );
+      grad.addColorStop(0,    rc(band.sh));
+      grad.addColorStop(0.22, rc(band.mid));
+      grad.addColorStop(0.5,  rc(band.hi));
+      grad.addColorStop(0.78, rc(band.mid));
+      grad.addColorStop(1,    rc(band.sh));
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+
+    // Растворение вправо в фон хедера
+    var fade = ctx.createLinearGradient(W * 0.5, 0, W * 0.88, 0);
+    fade.addColorStop(0, 'rgba(13,26,58,0)');
+    fade.addColorStop(1, 'rgba(13,26,58,1)');
+    ctx.fillStyle = fade;
+    ctx.fillRect(0, 0, W, H);
+  })();
 
 </script>
 </body>
